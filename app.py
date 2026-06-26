@@ -92,35 +92,42 @@ def medal(rank):
 
 def render_row(rank, row, leader_sec, show_category=False):
     is_leader = rank == 1
-    bg = "#fff8f5" if is_leader else "#ffffff"
-    border = "2px solid #FC4C02" if is_leader else "1px solid #f0f0f0"
-    name_color = "#1a1a1a"
-    time_color = "#FC4C02" if is_leader else "#333"
+    bg = "white"
+    shadow = "0 2px 12px rgba(252,76,2,0.12)" if is_leader else "0 1px 4px rgba(0,0,0,0.06)"
+    border_left = "4px solid #FC4C02" if is_leader else "4px solid transparent"
+    time_color = "#FC4C02" if is_leader else "#1a1a1a"
 
-    cat_html = f'<span style="font-size:11px;color:#bbb;margin-left:6px;font-weight:400;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
-    date_html = f'<span style="font-size:11px;color:#ccc;margin-left:6px;">· {row["Date_PB"]}</span>' if row.get("Date_PB", "—") not in ("—", "") else ""
-    ev_html = f'<span style="font-size:11px;color:#FC4C02;margin-left:6px;opacity:0.7;">📍{row["Evenement"]}</span>' if row.get("Evenement", "—") not in ("—", "") else ""
-    sexe_icon = '<span style="font-size:10px;color:#bbb;">♂</span>' if row.get("Sexe") == "Homme" else '<span style="font-size:10px;color:#bbb;">♀</span>'
+    cat_html = f'<span style="font-size:10px;color:#ccc;margin-left:5px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
+    date_html = f'<span style="font-size:10px;color:#ddd;margin-left:5px;">· {row["Date_PB"]}</span>' if row.get("Date_PB", "—") not in ("—", "") else ""
+    ev_html = f'<span style="font-size:10px;color:#FC4C02;margin-left:5px;opacity:0.8;font-weight:600;">📍 {row["Evenement"]}</span>' if row.get("Evenement", "—") not in ("—", "") else ""
+    sexe_icon = '<span style="font-size:9px;color:#ccc;background:#f5f5f5;padding:1px 4px;border-radius:3px;margin-right:4px;">♂</span>' if row.get("Sexe") == "Homme" else '<span style="font-size:9px;color:#FC4C02;background:#fff0eb;padding:1px 4px;border-radius:3px;margin-right:4px;">♀</span>'
     pace = pace_str(row["Secondes"], row["Distance"])
     ecart = ecart_str(row["Secondes"], leader_sec)
-    ecart_html = f'<span style="font-size:12px;color:#bbb;margin-left:8px;">+{ecart[1:]}</span>' if ecart else ""
+    ecart_html = f'<span style="font-size:11px;color:#ccc;margin-left:8px;font-weight:500;">{ecart}</span>' if ecart else ""
 
-    rank_html = f'<span style="font-size:18px;">{medal(rank)}</span>' if rank <= 3 else f'<span style="font-size:13px;color:#ccc;font-weight:500;">#{rank}</span>'
+    if rank == 1:
+        rank_html = '<span style="font-size:20px;">🥇</span>'
+    elif rank == 2:
+        rank_html = '<span style="font-size:20px;">🥈</span>'
+    elif rank == 3:
+        rank_html = '<span style="font-size:20px;">🥉</span>'
+    else:
+        rank_html = f'<span style="font-size:12px;color:#ccc;font-weight:700;">#{rank}</span>'
 
     st.markdown(
         f"""
         <div style="display:flex;align-items:center;justify-content:space-between;
-            padding:14px 20px;margin-bottom:5px;background:{bg};
-            border-radius:10px;border:{border};transition:all 0.2s;">
-            <span style="min-width:44px;text-align:center;">{rank_html}</span>
-            <span style="flex:1;padding-left:8px;">
-                <span style="font-size:15px;font-weight:{'600' if rank <= 3 else '500'};color:{name_color};">
-                    {sexe_icon} {row['Nom']}
-                </span>{cat_html}{ev_html}{date_html}
-                <br><span style="font-size:11px;color:#ccc;letter-spacing:0.3px;">{pace}</span>
+            padding:14px 18px;margin-bottom:6px;background:{bg};
+            border-radius:12px;box-shadow:{shadow};border-left:{border_left};">
+            <span style="min-width:40px;text-align:center;">{rank_html}</span>
+            <span style="flex:1;padding-left:10px;">
+                <div style="font-size:14px;font-weight:{'700' if rank <= 3 else '600'};color:#1a1a1a;line-height:1.3;">
+                    {sexe_icon}{row['Nom']}{cat_html}{ev_html}{date_html}
+                </div>
+                <div style="font-size:11px;color:#ccc;margin-top:2px;letter-spacing:0.3px;">{pace}</div>
             </span>
-            <span style="text-align:right;display:flex;align-items:center;gap:4px;">
-                <span style="font-family:monospace;font-size:17px;font-weight:600;color:{time_color};">{row['Temps']}</span>{ecart_html}
+            <span style="text-align:right;display:flex;align-items:center;gap:2px;">
+                <span style="font-family:monospace;font-size:16px;font-weight:700;color:{time_color};">{row['Temps']}</span>{ecart_html}
             </span>
         </div>
         """,
@@ -130,55 +137,95 @@ def render_row(rank, row, leader_sec, show_category=False):
 # ── UI ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Global */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+    /* Background */
+    .stApp { background-color: #F5F5F5; }
+    .block-container { padding-top: 2rem !important; }
 
     /* Header */
     .main-title {
-        font-size: 2rem; font-weight: 700; color: #1a1a1a;
-        letter-spacing: -0.5px; margin-bottom: 2px;
+        font-size: 2.2rem; font-weight: 800; color: #1a1a1a;
+        letter-spacing: -1px; margin-bottom: 4px; line-height: 1.1;
     }
     .main-title span { color: #FC4C02; }
-    .main-subtitle { font-size: 0.9rem; color: #999; margin-bottom: 1rem; }
+    .main-subtitle { font-size: 0.85rem; color: #aaa; margin-bottom: 1.5rem; letter-spacing: 0.3px; }
 
     /* Tabs */
-    .stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 2px solid #f0f0f0; }
-    .stTabs [data-baseweb="tab"] {
-        font-size: 0.85rem; font-weight: 500; color: #888;
-        padding: 8px 16px; border-radius: 6px 6px 0 0;
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0; background: white; border-radius: 12px;
+        padding: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: none;
     }
-    .stTabs [aria-selected="true"] { color: #FC4C02 !important; border-bottom: 2px solid #FC4C02 !important; }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 0.82rem; font-weight: 600; color: #999;
+        padding: 8px 18px; border-radius: 8px; border: none !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: #FC4C02 !important; color: white !important;
+        box-shadow: 0 2px 8px rgba(252,76,2,0.3);
+    }
+    .stTabs [data-baseweb="tab-border"] { display: none; }
 
-    /* Metrics */
-    [data-testid="stMetricValue"] { font-size: 1.4rem !important; font-weight: 700; color: #FC4C02; }
-    [data-testid="stMetricLabel"] { font-size: 0.75rem !important; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+    /* Metrics — card style */
+    [data-testid="metric-container"] {
+        background: white; border-radius: 12px;
+        padding: 16px 20px !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        border-left: 4px solid #FC4C02;
+    }
+    [data-testid="stMetricValue"] { font-size: 1.5rem !important; font-weight: 800 !important; color: #1a1a1a !important; }
+    [data-testid="stMetricLabel"] { font-size: 0.72rem !important; color: #aaa !important; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
 
     /* Buttons */
     .stButton > button {
         background: #FC4C02 !important; color: white !important;
-        border: none !important; border-radius: 8px !important;
-        font-weight: 600 !important; font-size: 0.9rem !important;
-        padding: 10px 20px !important;
+        border: none !important; border-radius: 10px !important;
+        font-weight: 700 !important; font-size: 0.9rem !important;
+        padding: 12px 24px !important; letter-spacing: 0.3px !important;
+        box-shadow: 0 4px 12px rgba(252,76,2,0.3) !important;
+        transition: all 0.2s !important;
     }
-    .stButton > button:hover { background: #e04400 !important; }
+    .stButton > button:hover {
+        background: #e04400 !important;
+        box-shadow: 0 6px 16px rgba(252,76,2,0.4) !important;
+        transform: translateY(-1px) !important;
+    }
 
-    /* Subheaders */
-    h3 { color: #1a1a1a !important; font-weight: 600 !important; font-size: 1.1rem !important; }
-    h4 { color: #FC4C02 !important; font-size: 0.95rem !important; font-weight: 600 !important;
-         text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1.2rem !important; }
+    /* Section titles */
+    h3 { color: #1a1a1a !important; font-weight: 700 !important; font-size: 1.05rem !important; letter-spacing: -0.3px; }
+    h4 {
+        color: #FC4C02 !important; font-size: 0.78rem !important; font-weight: 700 !important;
+        text-transform: uppercase; letter-spacing: 1px; margin-top: 1.5rem !important;
+        padding-bottom: 6px; border-bottom: 1px solid #f0f0f0;
+    }
 
     /* Inputs */
-    .stTextInput input, .stSelectbox select {
-        border-radius: 6px !important; border: 1px solid #e0e0e0 !important;
-        font-size: 0.9rem !important;
+    .stTextInput input {
+        border-radius: 8px !important; border: 1.5px solid #e8e8e8 !important;
+        background: white !important; font-size: 0.9rem !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
     }
-    .stTextInput input:focus { border-color: #FC4C02 !important; box-shadow: 0 0 0 1px #FC4C02 !important; }
+    .stTextInput input:focus {
+        border-color: #FC4C02 !important;
+        box-shadow: 0 0 0 3px rgba(252,76,2,0.1) !important;
+    }
 
     /* Radio */
-    .stRadio label { font-size: 0.85rem !important; color: #555 !important; }
+    .stRadio label { font-size: 0.82rem !important; color: #666 !important; font-weight: 500; }
+
+    /* Expander */
+    .streamlit-expanderHeader { font-size: 0.85rem !important; color: #999 !important; }
 
     /* Divider */
-    hr { border-color: #f0f0f0 !important; margin: 1rem 0 !important; }
+    hr { border-color: #ebebeb !important; margin: 1.2rem 0 !important; }
+
+    /* Form sections */
+    .stSelectbox label, .stTextInput label, .stDateInput label {
+        font-size: 0.78rem !important; font-weight: 600 !important;
+        color: #888 !important; text-transform: uppercase; letter-spacing: 0.5px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
