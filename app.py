@@ -318,30 +318,95 @@ try:
             distances_presentes = sorted(df["Distance"].unique().tolist(), key=lambda x: DISTANCES.index(x) if x in DISTANCES else 99)
             col_g1, col_g2 = st.columns(2)
             with col_g1:
-                dist_graph = st.selectbox("Distance", distances_presentes)
+                dist_graph = st.selectbox("Distance", distances_presentes, key="graph_dist")
             with col_g2:
                 couleur_par = st.radio("Couleur par", ["Catégorie d'âge", "Sexe", "Événement"], horizontal=True)
 
             couleur_col = {"Catégorie d'âge": "Categorie", "Sexe": "Sexe", "Événement": "Evenement"}[couleur_par]
 
-            df_graph = df[df["Distance"] == dist_graph].dropna(subset=["Secondes"]).sort_values("Secondes")
+            df_graph = df[df["Distance"] == dist_graph].dropna(subset=["Secondes"]).sort_values("Secondes").reset_index(drop=True)
             if df_graph.empty:
                 st.info(f"Aucun coureur pour {dist_graph}.")
             else:
                 df_graph = df_graph.copy()
                 df_graph["Pace"] = df_graph.apply(lambda r: pace_str(r["Secondes"], r["Distance"]), axis=1)
                 df_graph["Minutes"] = df_graph["Secondes"] / 60
+                leader_sec = df_graph.iloc[0]["Secondes"]
+                df_graph["Écart leader"] = df_graph["Secondes"].apply(lambda s: ecart_str(s, leader_sec) or "—")
 
-                fig = px.bar(
-                    df_graph, x="Nom", y="Minutes",
-                    color=couleur_col, text="Temps",
-                    hover_data={"Pace": True, "Date_PB": True, "Sexe": True, "Evenement": True, "Minutes": False},
-                    labels={"Minutes": "Temps (minutes)", "Nom": ""},
-                    title=f"Temps — {dist_graph}",
-                    color_discrete_sequence=px.colors.qualitative.Set2
+                # Tick labels Y en H:MM:SS
+                y_min = df_graph["Minutes"].min()
+                y_max = df_graph["Minutes"].max()
+                padding = max((y_max - y_min) * 0.15, 2)
+                tick_count = 8
+                tick_step = (y_max - y_min + padding * 2) / tick_count
+                tick_vals = [y_min - padding + i * tick_step for i in range(tick_count + 1)]
+                tick_texts = [seconds_to_str(int(v * 60)) for v in tick_vals]
+
+                # Moyenne
+                moyenne_min = df_graph["Minutes"].mean()
+                moyenne_str = seconds_to_str(int(moyenne_min * 60))
+
+                import plotly.graph_objects as go
+                fig = go.Figure()
+
+                # Ligne de connexion
+                fig.add_trace(go.Scatter(
+                    x=df_graph["Nom"], y=df_graph["Minutes"],
+                    mode="lines",
+                    line=dict(color="#4A90D9", width=2, dash="solid"),
+                    showlegend=False,
+                    hoverinfo="skip"
+                ))
+
+                # Points colorés
+                fig.add_trace(go.Scatter(
+                    x=df_graph["Nom"], y=df_graph["Minutes"],
+                    mode="markers+text",
+                    text=df_graph["Temps"],
+                    textposition="top center",
+                    textfont=dict(size=11),
+                    marker=dict(size=12, color="#FC4C02", line=dict(color="white", width=2)),
+                    customdata=df_graph[["Pace", "Écart leader", "Evenement", "Date_PB", "Categorie", "Sexe"]].values,
+                    hovertemplate=(
+                        "<b>%{x}</b><br>"
+                        "⏱ Temps : %{text}<br>"
+                        "🏃 Pace : %{customdata[0]}<br>"
+                        "📊 Écart leader : %{customdata[1]}<br>"
+                        "📍 Événement : %{customdata[2]}<br>"
+                        "📅 Date PB : %{customdata[3]}<br>"
+                        "👤 Catégorie : %{customdata[4]} · %{customdata[5]}<extra></extra>"
+                    ),
+                    name="Coureurs"
+                ))
+
+                # Ligne moyenne
+                fig.add_hline(
+                    y=moyenne_min,
+                    line_dash="dot",
+                    line_color="#888",
+                    line_width=1.5,
+                    annotation_text=f"Moyenne équipe : {moyenne_str}",
+                    annotation_position="top right",
+                    annotation_font_color="#888"
                 )
-                fig.update_traces(textposition="outside")
-                fig.update_layout(yaxis_title="Temps (minutes)", plot_bgcolor="#FAFAFA", height=450)
+
+                fig.update_layout(
+                    title=f"Temps — {dist_graph}",
+                    plot_bgcolor="#FAFAFA",
+                    paper_bgcolor="white",
+                    height=500,
+                    yaxis=dict(
+                        tickvals=tick_vals,
+                        ticktext=tick_texts,
+                        range=[y_min - padding, y_max + padding],
+                        title="Temps",
+                        gridcolor="#EBEBEB"
+                    ),
+                    xaxis=dict(title="", gridcolor="#EBEBEB"),
+                    showlegend=False,
+                    margin=dict(t=60, b=60)
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
 except Exception as e:
