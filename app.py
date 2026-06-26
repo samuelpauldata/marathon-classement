@@ -85,48 +85,67 @@ def load_data(sheet):
     return df
 
 def medal(rank):
-    if rank == 1: return "🥇"
-    if rank == 2: return "🥈"
-    if rank == 3: return "🥉"
+    if rank == 1: return "1"
+    if rank == 2: return "2"
+    if rank == 3: return "3"
     return f"#{rank}"
+
+# Lucide SVG icons (flat, stroke-based)
+ICON_MAP = {
+    "pin": '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FC4C02" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+    "calendar": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+    "user_m": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>',
+    "user_f": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FC4C02" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>',
+    "timer": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 15.5 14.5"/></svg>',
+    "zap": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+}
+
+def rank_badge(rank):
+    if rank == 1:
+        color, bg = "#FC4C02", "#fff0eb"
+    elif rank == 2:
+        color, bg = "#6B7280", "#F3F4F6"
+    elif rank == 3:
+        color, bg = "#B45309", "#FEF3C7"
+    else:
+        return f'<span style="font-size:11px;color:#ccc;font-weight:700;min-width:28px;text-align:center;">#{rank}</span>'
+    return f'<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:{bg};color:{color};font-size:12px;font-weight:800;">{rank}</span>'
 
 def render_row(rank, row, leader_sec, show_category=False):
     is_leader = rank == 1
-    bg = "white"
-    shadow = "0 2px 12px rgba(252,76,2,0.12)" if is_leader else "0 1px 4px rgba(0,0,0,0.06)"
-    border_left = "4px solid #FC4C02" if is_leader else "4px solid transparent"
+    shadow = "0 2px 12px rgba(252,76,2,0.10)" if is_leader else "0 1px 4px rgba(0,0,0,0.06)"
+    border_left = "3px solid #FC4C02" if is_leader else "3px solid transparent"
     time_color = "#FC4C02" if is_leader else "#1a1a1a"
 
-    cat_html = f'<span style="font-size:10px;color:#ccc;margin-left:5px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
-    date_html = f'<span style="font-size:10px;color:#ddd;margin-left:5px;">· {row["Date_PB"]}</span>' if row.get("Date_PB", "—") not in ("—", "") else ""
-    ev_html = f'<span style="font-size:10px;color:#FC4C02;margin-left:5px;opacity:0.8;font-weight:600;">📍 {row["Evenement"]}</span>' if row.get("Evenement", "—") not in ("—", "") else ""
-    sexe_icon = '<span style="font-size:9px;color:#ccc;background:#f5f5f5;padding:1px 4px;border-radius:3px;margin-right:4px;">♂</span>' if row.get("Sexe") == "Homme" else '<span style="font-size:9px;color:#FC4C02;background:#fff0eb;padding:1px 4px;border-radius:3px;margin-right:4px;">♀</span>'
+    cat_html = f'<span style="font-size:10px;color:#bbb;margin-left:5px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px;">{row["Categorie"]}</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
+    date_val = row.get("Date_PB", "—")
+    date_html = f'<span style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;">{ICON_MAP["calendar"]}<span style="font-size:10px;color:#ccc;">{date_val}</span></span>' if date_val not in ("—", "") else ""
+    ev_val = row.get("Evenement", "—")
+    ev_html = f'<span style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;">{ICON_MAP["pin"]}<span style="font-size:10px;color:#FC4C02;font-weight:600;">{ev_val}</span></span>' if ev_val not in ("—", "") else ""
+    sexe_icon = ICON_MAP["user_m"] if row.get("Sexe") == "Homme" else ICON_MAP["user_f"]
+
     pace = pace_str(row["Secondes"], row["Distance"])
     ecart = ecart_str(row["Secondes"], leader_sec)
-    ecart_html = f'<span style="font-size:11px;color:#ccc;margin-left:8px;font-weight:500;">{ecart}</span>' if ecart else ""
-
-    if rank == 1:
-        rank_html = '<span style="font-size:20px;">🥇</span>'
-    elif rank == 2:
-        rank_html = '<span style="font-size:20px;">🥈</span>'
-    elif rank == 3:
-        rank_html = '<span style="font-size:20px;">🥉</span>'
-    else:
-        rank_html = f'<span style="font-size:12px;color:#ccc;font-weight:700;">#{rank}</span>'
+    ecart_html = f'<span style="font-size:11px;color:#bbb;margin-left:8px;font-weight:500;">{ecart}</span>' if ecart else ""
 
     st.markdown(
         f"""
         <div style="display:flex;align-items:center;justify-content:space-between;
-            padding:14px 18px;margin-bottom:6px;background:{bg};
+            padding:13px 16px;margin-bottom:6px;background:white;
             border-radius:12px;box-shadow:{shadow};border-left:{border_left};">
-            <span style="min-width:40px;text-align:center;">{rank_html}</span>
-            <span style="flex:1;padding-left:10px;">
-                <div style="font-size:14px;font-weight:{'700' if rank <= 3 else '600'};color:#1a1a1a;line-height:1.3;">
-                    {sexe_icon}{row['Nom']}{cat_html}{ev_html}{date_html}
+            <span style="min-width:36px;text-align:center;">{rank_badge(rank)}</span>
+            <span style="flex:1;padding-left:12px;">
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;line-height:1.4;">
+                    {sexe_icon}
+                    <span style="font-size:14px;font-weight:{'700' if rank <= 3 else '600'};color:#1a1a1a;">{row['Nom']}</span>
+                    {cat_html}{ev_html}{date_html}
                 </div>
-                <div style="font-size:11px;color:#ccc;margin-top:2px;letter-spacing:0.3px;">{pace}</div>
+                <div style="display:flex;align-items:center;gap:3px;margin-top:3px;">
+                    {ICON_MAP["zap"]}
+                    <span style="font-size:11px;color:#ccc;letter-spacing:0.2px;">{pace}</span>
+                </div>
             </span>
-            <span style="text-align:right;display:flex;align-items:center;gap:2px;">
+            <span style="display:flex;align-items:center;">
                 <span style="font-family:monospace;font-size:16px;font-weight:700;color:{time_color};">{row['Temps']}</span>{ecart_html}
             </span>
         </div>
