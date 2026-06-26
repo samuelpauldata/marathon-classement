@@ -92,12 +92,11 @@ def medal(rank):
 
 # Lucide SVG icons (flat, stroke-based)
 ICON_MAP = {
-    "pin": '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FC4C02" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
-    "calendar": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
-    "user_m": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>',
-    "user_f": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FC4C02" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>',
-    "timer": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 15.5 14.5"/></svg>',
-    "zap": '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    "pin":      '<span style="color:#FC4C02;font-size:10px;">⌖</span>',
+    "calendar": '<span style="color:#ccc;font-size:10px;">◷</span>',
+    "user_m":   '<span style="font-size:9px;color:#aaa;background:#f0f0f0;padding:1px 5px;border-radius:4px;font-weight:600;letter-spacing:0.3px;">M</span>',
+    "user_f":   '<span style="font-size:9px;color:#FC4C02;background:#fff0eb;padding:1px 5px;border-radius:4px;font-weight:600;letter-spacing:0.3px;">F</span>',
+    "zap":      '<span style="color:#ccc;font-size:10px;">→</span>',
 }
 
 def rank_badge(rank):
