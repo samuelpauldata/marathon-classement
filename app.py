@@ -92,12 +92,16 @@ def medal(rank):
 
 # Lucide SVG icons (flat, stroke-based)
 ICON_MAP = {
-    "pin":      '<span style="color:#FC4C02;font-size:10px;">⌖</span>',
-    "calendar": '<span style="color:#ccc;font-size:10px;">◷</span>',
-    "user_m":   '<span style="font-size:9px;color:#aaa;background:#f0f0f0;padding:1px 5px;border-radius:4px;font-weight:600;letter-spacing:0.3px;">M</span>',
-    "user_f":   '<span style="font-size:9px;color:#FC4C02;background:#fff0eb;padding:1px 5px;border-radius:4px;font-weight:600;letter-spacing:0.3px;">F</span>',
-    "zap":      '<span style="color:#ccc;font-size:10px;">→</span>',
+    "pin":      "📍",
+    "calendar": "📅",
+    "user_m":   "♂",
+    "user_f":   "♀",
+    "zap":      "⚡",
 }
+
+def esc(val):
+    """Escape HTML special characters from user data."""
+    return str(val).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 def rank_badge(rank):
     if rank == 1:
@@ -116,16 +120,20 @@ def render_row(rank, row, leader_sec, show_category=False):
     border_left = "3px solid #FC4C02" if is_leader else "3px solid transparent"
     time_color = "#FC4C02" if is_leader else "#1a1a1a"
 
-    cat_html = f'<span style="font-size:10px;color:#bbb;margin-left:5px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px;">{row["Categorie"]}</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
-    date_val = row.get("Date_PB", "—")
-    date_html = f'<span style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;">{ICON_MAP["calendar"]}<span style="font-size:10px;color:#ccc;">{date_val}</span></span>' if date_val not in ("—", "") else ""
-    ev_val = row.get("Evenement", "—")
-    ev_html = f'<span style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;">{ICON_MAP["pin"]}<span style="font-size:10px;color:#FC4C02;font-weight:600;">{ev_val}</span></span>' if ev_val not in ("—", "") else ""
-    sexe_icon = ICON_MAP["user_m"] if row.get("Sexe") == "Homme" else ICON_MAP["user_f"]
+    nom_safe = esc(row['Nom'])
+    cat_safe = esc(row.get("Categorie", "—"))
+    date_safe = esc(row.get("Date_PB", "—"))
+    ev_safe = esc(row.get("Evenement", "—"))
+    temps_safe = esc(row['Temps'])
+    pace_safe = esc(pace_str(row["Secondes"], row["Distance"]))
 
-    pace = pace_str(row["Secondes"], row["Distance"])
+    cat_html = f'<span style="font-size:10px;color:#bbb;margin-left:5px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px;">{cat_safe}</span>' if show_category and cat_safe not in ("—", "") else ""
+    date_html = f'<span style="font-size:10px;color:#ccc;margin-left:6px;">{ICON_MAP["calendar"]} {date_safe}</span>' if date_safe not in ("—", "") else ""
+    ev_html = f'<span style="font-size:10px;color:#FC4C02;font-weight:600;margin-left:6px;">{ICON_MAP["pin"]} {ev_safe}</span>' if ev_safe not in ("—", "") else ""
+    sexe_icon = f'<span style="font-size:10px;color:#aaa;">{ICON_MAP["user_m"]}</span>' if row.get("Sexe") == "Homme" else f'<span style="font-size:10px;color:#FC4C02;">{ICON_MAP["user_f"]}</span>'
+
     ecart = ecart_str(row["Secondes"], leader_sec)
-    ecart_html = f'<span style="font-size:11px;color:#bbb;margin-left:8px;font-weight:500;">{ecart}</span>' if ecart else ""
+    ecart_html = f'<span style="font-size:11px;color:#bbb;margin-left:8px;font-weight:500;">{esc(ecart)}</span>' if ecart else ""
 
     st.markdown(
         f"""
@@ -136,16 +144,15 @@ def render_row(rank, row, leader_sec, show_category=False):
             <span style="flex:1;padding-left:12px;">
                 <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;line-height:1.4;">
                     {sexe_icon}
-                    <span style="font-size:14px;font-weight:{'700' if rank <= 3 else '600'};color:#1a1a1a;">{row['Nom']}</span>
+                    <span style="font-size:14px;font-weight:{'700' if rank <= 3 else '600'};color:#1a1a1a;">{nom_safe}</span>
                     {cat_html}{ev_html}{date_html}
                 </div>
-                <div style="display:flex;align-items:center;gap:3px;margin-top:3px;">
-                    {ICON_MAP["zap"]}
-                    <span style="font-size:11px;color:#ccc;letter-spacing:0.2px;">{pace}</span>
+                <div style="margin-top:3px;">
+                    <span style="font-size:11px;color:#ccc;letter-spacing:0.2px;">{ICON_MAP["zap"]} {pace_safe}</span>
                 </div>
             </span>
             <span style="display:flex;align-items:center;">
-                <span style="font-family:monospace;font-size:16px;font-weight:700;color:{time_color};">{row['Temps']}</span>{ecart_html}
+                <span style="font-family:monospace;font-size:16px;font-weight:700;color:{time_color};">{temps_safe}</span>{ecart_html}
             </span>
         </div>
         """,
