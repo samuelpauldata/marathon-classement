@@ -165,6 +165,10 @@ try:
             cats_presentes = [g for g in AGE_GROUPS if g in df["Categorie"].unique()]
             filtre_cat = st.radio("Catégorie d'âge", ["Toutes"] + cats_presentes, horizontal=True)
 
+        col_f3, col_f4 = st.columns([1, 1])
+        with col_f3:
+            tri = st.radio("Trier par", ["🏆 Temps", "📅 Date du PB (récent → ancien)", "📅 Date du PB (ancien → récent)"], horizontal=False)
+
         # Appliquer filtres
         df_filtre = df.copy()
         if filtre_dist != "Toutes":
@@ -172,7 +176,19 @@ try:
         if filtre_cat != "Toutes":
             df_filtre = df_filtre[df_filtre["Categorie"] == filtre_cat]
 
-        df_sorted = df_filtre.dropna(subset=["Secondes"]).sort_values("Secondes").reset_index(drop=True)
+        # Appliquer tri
+        if tri == "🏆 Temps":
+            df_sorted = df_filtre.dropna(subset=["Secondes"]).sort_values("Secondes").reset_index(drop=True)
+        else:
+            def parse_date(d):
+                try:
+                    return pd.to_datetime(d, format="%d/%m/%Y")
+                except:
+                    return pd.NaT
+            df_filtre = df_filtre.copy()
+            df_filtre["Date_parsed"] = df_filtre["Date_PB"].apply(parse_date)
+            ascending = (tri == "📅 Date du PB (ancien → récent)")
+            df_sorted = df_filtre.sort_values("Date_parsed", ascending=ascending).reset_index(drop=True)
 
         show_category = (filtre_cat == "Toutes")
 
