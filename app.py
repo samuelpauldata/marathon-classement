@@ -399,7 +399,7 @@ try:
                     yaxis=dict(
                         tickvals=tick_vals,
                         ticktext=tick_texts,
-                        range=[y_min - padding, y_max + padding],
+                        range=[y_max + padding, y_min - padding],
                         title="Temps",
                         gridcolor="#EBEBEB"
                     ),
