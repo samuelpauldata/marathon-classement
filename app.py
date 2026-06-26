@@ -91,26 +91,36 @@ def medal(rank):
     return f"#{rank}"
 
 def render_row(rank, row, leader_sec, show_category=False):
-    bg = "#FFF9E6" if rank == 1 else "#F9F9F9" if rank % 2 == 0 else "#FFFFFF"
-    cat_html = f'<span style="font-size:12px;color:#888;margin-left:6px;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
-    date_html = f'<span style="font-size:12px;color:#aaa;margin-left:6px;">{row["Date_PB"]}</span>' if row.get("Date_PB", "—") not in ("—", "") else ""
-    ev_html = f'<span style="font-size:12px;color:#6a9;margin-left:6px;">📍{row["Evenement"]}</span>' if row.get("Evenement", "—") not in ("—", "") else ""
-    sexe_icon = "♂️" if row.get("Sexe") == "Homme" else "♀️"
+    is_leader = rank == 1
+    bg = "#fff8f5" if is_leader else "#ffffff"
+    border = "2px solid #FC4C02" if is_leader else "1px solid #f0f0f0"
+    name_color = "#1a1a1a"
+    time_color = "#FC4C02" if is_leader else "#333"
+
+    cat_html = f'<span style="font-size:11px;color:#bbb;margin-left:6px;font-weight:400;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
+    date_html = f'<span style="font-size:11px;color:#ccc;margin-left:6px;">· {row["Date_PB"]}</span>' if row.get("Date_PB", "—") not in ("—", "") else ""
+    ev_html = f'<span style="font-size:11px;color:#FC4C02;margin-left:6px;opacity:0.7;">📍{row["Evenement"]}</span>' if row.get("Evenement", "—") not in ("—", "") else ""
+    sexe_icon = '<span style="font-size:10px;color:#bbb;">♂</span>' if row.get("Sexe") == "Homme" else '<span style="font-size:10px;color:#bbb;">♀</span>'
     pace = pace_str(row["Secondes"], row["Distance"])
     ecart = ecart_str(row["Secondes"], leader_sec)
-    ecart_html = f'<span style="font-size:13px;color:#e07000;margin-left:10px;">{ecart}</span>' if ecart else ""
+    ecart_html = f'<span style="font-size:12px;color:#bbb;margin-left:8px;">+{ecart[1:]}</span>' if ecart else ""
+
+    rank_html = f'<span style="font-size:18px;">{medal(rank)}</span>' if rank <= 3 else f'<span style="font-size:13px;color:#ccc;font-weight:500;">#{rank}</span>'
+
     st.markdown(
         f"""
         <div style="display:flex;align-items:center;justify-content:space-between;
-            padding:12px 20px;margin-bottom:6px;background:{bg};
-            border-radius:10px;border:1px solid #EBEBEB;font-size:16px;">
-            <span style="font-size:20px;min-width:50px;">{medal(rank)}</span>
-            <span style="flex:1;font-weight:{'600' if rank <= 3 else '400'};">
-                {sexe_icon} {row['Nom']}{cat_html}{ev_html}{date_html}
-                <br><span style="font-size:12px;color:#999;">{pace}</span>
+            padding:14px 20px;margin-bottom:5px;background:{bg};
+            border-radius:10px;border:{border};transition:all 0.2s;">
+            <span style="min-width:44px;text-align:center;">{rank_html}</span>
+            <span style="flex:1;padding-left:8px;">
+                <span style="font-size:15px;font-weight:{'600' if rank <= 3 else '500'};color:{name_color};">
+                    {sexe_icon} {row['Nom']}
+                </span>{cat_html}{ev_html}{date_html}
+                <br><span style="font-size:11px;color:#ccc;letter-spacing:0.3px;">{pace}</span>
             </span>
-            <span style="text-align:right;display:flex;align-items:center;">
-                <span style="font-family:monospace;font-size:18px;color:#333;">{row['Temps']}</span>{ecart_html}
+            <span style="text-align:right;display:flex;align-items:center;gap:4px;">
+                <span style="font-family:monospace;font-size:17px;font-weight:600;color:{time_color};">{row['Temps']}</span>{ecart_html}
             </span>
         </div>
         """,
@@ -118,8 +128,62 @@ def render_row(rank, row, leader_sec, show_category=False):
     )
 
 # ── UI ───────────────────────────────────────────────────────────────────────
-st.markdown("# 🏃 Classement Course")
-st.markdown("Entrez les résultats de votre équipe et voyez le classement en temps réel.")
+st.markdown("""
+<style>
+    /* Global */
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+    /* Header */
+    .main-title {
+        font-size: 2rem; font-weight: 700; color: #1a1a1a;
+        letter-spacing: -0.5px; margin-bottom: 2px;
+    }
+    .main-title span { color: #FC4C02; }
+    .main-subtitle { font-size: 0.9rem; color: #999; margin-bottom: 1rem; }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 2px solid #f0f0f0; }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 0.85rem; font-weight: 500; color: #888;
+        padding: 8px 16px; border-radius: 6px 6px 0 0;
+    }
+    .stTabs [aria-selected="true"] { color: #FC4C02 !important; border-bottom: 2px solid #FC4C02 !important; }
+
+    /* Metrics */
+    [data-testid="stMetricValue"] { font-size: 1.4rem !important; font-weight: 700; color: #FC4C02; }
+    [data-testid="stMetricLabel"] { font-size: 0.75rem !important; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Buttons */
+    .stButton > button {
+        background: #FC4C02 !important; color: white !important;
+        border: none !important; border-radius: 8px !important;
+        font-weight: 600 !important; font-size: 0.9rem !important;
+        padding: 10px 20px !important;
+    }
+    .stButton > button:hover { background: #e04400 !important; }
+
+    /* Subheaders */
+    h3 { color: #1a1a1a !important; font-weight: 600 !important; font-size: 1.1rem !important; }
+    h4 { color: #FC4C02 !important; font-size: 0.95rem !important; font-weight: 600 !important;
+         text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1.2rem !important; }
+
+    /* Inputs */
+    .stTextInput input, .stSelectbox select {
+        border-radius: 6px !important; border: 1px solid #e0e0e0 !important;
+        font-size: 0.9rem !important;
+    }
+    .stTextInput input:focus { border-color: #FC4C02 !important; box-shadow: 0 0 0 1px #FC4C02 !important; }
+
+    /* Radio */
+    .stRadio label { font-size: 0.85rem !important; color: #555 !important; }
+
+    /* Divider */
+    hr { border-color: #f0f0f0 !important; margin: 1rem 0 !important; }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="main-title">🏃 Classement <span>Course</span></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-subtitle">Résultats et classement de votre équipe en temps réel</div>', unsafe_allow_html=True)
 
 try:
     sheet = get_sheet()
