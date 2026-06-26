@@ -109,9 +109,8 @@ def render_row(rank, row, leader_sec, show_category=False):
                 {sexe_icon} {row['Nom']}{cat_html}{ev_html}{date_html}
                 <br><span style="font-size:12px;color:#999;">{pace}</span>
             </span>
-            <span style="text-align:right;">
-                <span style="font-family:monospace;font-size:18px;color:#333;">{row['Temps']}</span>
-                {ecart_html}
+            <span style="text-align:right;display:flex;align-items:center;">
+                <span style="font-family:monospace;font-size:18px;color:#333;">{row['Temps']}</span>{ecart_html}
             </span>
         </div>
         """,
