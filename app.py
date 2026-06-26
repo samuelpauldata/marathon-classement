@@ -166,9 +166,9 @@ st.markdown("""
 
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-    /* Background */
-    .stApp { background-color: #F5F5F5; }
-    .block-container { padding-top: 2rem !important; }
+    /* Hide Streamlit header */
+    header[data-testid="stHeader"] { display: none !important; }
+    .block-container { padding-top: 1.5rem !important; }
 
     /* Header */
     .main-title {
