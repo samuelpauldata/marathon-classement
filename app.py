@@ -359,26 +359,30 @@ try:
                     hoverinfo="skip"
                 ))
 
-                # Points colorés
-                fig.add_trace(go.Scatter(
-                    x=df_graph["Nom"], y=df_graph["Minutes"],
-                    mode="markers+text",
-                    text=df_graph["Temps"],
-                    textposition="top center",
-                    textfont=dict(size=11),
-                    marker=dict(size=12, color="#FC4C02", line=dict(color="white", width=2)),
-                    customdata=df_graph[["Pace", "Écart leader", "Evenement", "Date_PB", "Categorie", "Sexe"]].values,
-                    hovertemplate=(
-                        "<b>%{x}</b><br>"
-                        "⏱ Temps : %{text}<br>"
-                        "🏃 Pace : %{customdata[0]}<br>"
-                        "📊 Écart leader : %{customdata[1]}<br>"
-                        "📍 Événement : %{customdata[2]}<br>"
-                        "📅 Date PB : %{customdata[3]}<br>"
-                        "👤 Catégorie : %{customdata[4]} · %{customdata[5]}<extra></extra>"
-                    ),
-                    name="Coureurs"
-                ))
+                # Points colorés par groupe
+                groupes = df_graph[couleur_col].unique()
+                colors = px.colors.qualitative.Set2
+                for i, groupe in enumerate(groupes):
+                    df_g = df_graph[df_graph[couleur_col] == groupe]
+                    fig.add_trace(go.Scatter(
+                        x=df_g["Nom"], y=df_g["Minutes"],
+                        mode="markers+text",
+                        name=str(groupe),
+                        text=df_g["Temps"],
+                        textposition="top center",
+                        textfont=dict(size=11),
+                        marker=dict(size=12, color=colors[i % len(colors)], line=dict(color="white", width=2)),
+                        customdata=df_g[["Pace", "Écart leader", "Evenement", "Date_PB", "Categorie", "Sexe"]].values,
+                        hovertemplate=(
+                            "<b>%{x}</b><br>"
+                            "⏱ Temps : %{text}<br>"
+                            "🏃 Pace : %{customdata[0]}<br>"
+                            "📊 Écart leader : %{customdata[1]}<br>"
+                            "📍 Événement : %{customdata[2]}<br>"
+                            "📅 Date PB : %{customdata[3]}<br>"
+                            "👤 Catégorie : %{customdata[4]} · %{customdata[5]}<extra></extra>"
+                        ),
+                    ))
 
                 # Ligne moyenne
                 fig.add_hline(
@@ -404,7 +408,7 @@ try:
                         gridcolor="#EBEBEB"
                     ),
                     xaxis=dict(title="", gridcolor="#EBEBEB"),
-                    showlegend=False,
+                    showlegend=True,
                     margin=dict(t=60, b=60)
                 )
                 st.plotly_chart(fig, use_container_width=True)
