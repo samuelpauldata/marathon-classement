@@ -2,6 +2,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
+from datetime import date
 
 # ── Config ──────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -16,6 +17,7 @@ SCOPES = [
 ]
 
 DISTANCES = ["5 km", "10 km", "Demi-marathon (21,1 km)", "Marathon (42,2 km)"]
+AGE_GROUPS = ["18-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"]
 
 # ── Google Sheets connection ─────────────────────────────────────────────────
 @st.cache_resource
@@ -28,7 +30,7 @@ def get_sheet():
     sheet = client.open(st.secrets["sheet_name"]).sheet1
     if sheet.row_count == 0 or sheet.cell(1, 1).value != "Nom":
         sheet.clear()
-        sheet.append_row(["Nom", "Distance", "Temps", "Secondes"])
+        sheet.append_row(["Nom", "Distance", "Categorie", "Date_PB", "Temps", "Secondes"])
     return sheet
 
 def parse_time(time_str):
@@ -48,19 +50,22 @@ def parse_time(time_str):
         return None
 
 def seconds_to_str(seconds):
-    h = seconds // 3600
-    m = (seconds % 3600) // 60
-    s = seconds % 60
+    h = int(seconds) // 3600
+    m = (int(seconds) % 3600) // 60
+    s = int(seconds) % 60
     return f"{h}:{m:02d}:{s:02d}"
 
 def load_data(sheet):
     records = sheet.get_all_records()
     if not records:
-        return pd.DataFrame(columns=["Nom", "Distance", "Temps", "Secondes"])
+        return pd.DataFrame(columns=["Nom", "Distance", "Categorie", "Date_PB", "Temps", "Secondes"])
     df = pd.DataFrame(records)
-    # Handle old data without Distance column
     if "Distance" not in df.columns:
         df["Distance"] = "Marathon (42,2 km)"
+    if "Categorie" not in df.columns:
+        df["Categorie"] = "—"
+    if "Date_PB" not in df.columns:
+        df["Date_PB"] = "—"
     df["Secondes"] = pd.to_numeric(df["Secondes"], errors="coerce")
     return df
 
@@ -69,6 +74,33 @@ def medal(rank):
     if rank == 2: return "🥈"
     if rank == 3: return "🥉"
     return f"#{rank}"
+
+def render_row(rank, row, show_category=False):
+    bg = "#FFF9E6" if rank == 1 else "#F9F9F9" if rank % 2 == 0 else "#FFFFFF"
+    cat_html = f'<span style="font-size:12px; color:#888; margin-left:8px;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") != "—" else ""
+    date_html = f'<span style="font-size:12px; color:#aaa; margin-left:8px;">{row["Date_PB"]}</span>' if row.get("Date_PB", "—") != "—" else ""
+    st.markdown(
+        f"""
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            margin-bottom: 6px;
+            background: {bg};
+            border-radius: 10px;
+            border: 1px solid #EBEBEB;
+            font-size: 16px;
+        ">
+            <span style="font-size: 20px; min-width: 50px;">{medal(rank)}</span>
+            <span style="flex: 1; font-weight: {'600' if rank <= 3 else '400'};">
+                {row['Nom']}{cat_html}{date_html}
+            </span>
+            <span style="font-family: monospace; font-size: 18px; color: #333;">{row['Temps']}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ── UI ───────────────────────────────────────────────────────────────────────
 st.markdown("# 🏃 Classement Course")
@@ -87,7 +119,13 @@ try:
     with col2:
         temps = st.text_input("Temps (H:MM:SS)", placeholder="Ex: 3:45:22")
 
-    distance = st.selectbox("Distance", DISTANCES, index=3)
+    col3, col4, col5 = st.columns([2, 1, 1])
+    with col3:
+        distance = st.selectbox("Distance", DISTANCES, index=3)
+    with col4:
+        categorie = st.selectbox("Catégorie d'âge", AGE_GROUPS)
+    with col5:
+        date_pb = st.date_input("Date du PB", value=date.today(), format="DD/MM/YYYY")
 
     if st.button("➕ Ajouter au classement", use_container_width=True):
         if not nom.strip():
@@ -104,8 +142,8 @@ try:
                 if not doublon.empty:
                     st.warning(f"⚠️ **{nom}** est déjà dans le classement pour **{distance}**.")
                 else:
-                    sheet.append_row([nom.strip(), distance, seconds_to_str(secondes), secondes])
-                    st.success(f"✅ **{nom}** ajouté en **{distance}** avec un temps de **{seconds_to_str(secondes)}**!")
+                    sheet.append_row([nom.strip(), distance, categorie, date_pb.strftime("%d/%m/%Y"), seconds_to_str(secondes), secondes])
+                    st.success(f"✅ **{nom}** ajouté!")
                     st.cache_resource.clear()
                     st.rerun()
 
@@ -118,83 +156,47 @@ try:
     if df.empty or len(df) == 0:
         st.info("Aucun coureur pour l'instant. Ajoutez le premier résultat ci-dessus!")
     else:
-        # Filtre par distance
-        distances_presentes = df["Distance"].unique().tolist()
-        distances_presentes.sort(key=lambda x: DISTANCES.index(x) if x in DISTANCES else 99)
-        filtre = st.radio("Filtrer par distance", ["Toutes"] + distances_presentes, horizontal=True)
+        # Filtres
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            distances_presentes = sorted(df["Distance"].unique().tolist(), key=lambda x: DISTANCES.index(x) if x in DISTANCES else 99)
+            filtre_dist = st.radio("Distance", ["Toutes"] + distances_presentes, horizontal=True)
+        with col_f2:
+            cats_presentes = [g for g in AGE_GROUPS if g in df["Categorie"].unique()]
+            filtre_cat = st.radio("Catégorie d'âge", ["Toutes"] + cats_presentes, horizontal=True)
 
-        if filtre == "Toutes":
-            df_filtre = df.copy()
-        else:
-            df_filtre = df[df["Distance"] == filtre].copy()
+        # Appliquer filtres
+        df_filtre = df.copy()
+        if filtre_dist != "Toutes":
+            df_filtre = df_filtre[df_filtre["Distance"] == filtre_dist]
+        if filtre_cat != "Toutes":
+            df_filtre = df_filtre[df_filtre["Categorie"] == filtre_cat]
 
         df_sorted = df_filtre.dropna(subset=["Secondes"]).sort_values("Secondes").reset_index(drop=True)
 
+        show_category = (filtre_cat == "Toutes")
+
         if df_sorted.empty:
-            st.info(f"Aucun coureur pour {filtre}.")
+            st.info("Aucun coureur pour ces filtres.")
         else:
-            # Stats rapides
             c1, c2, c3 = st.columns(3)
             c1.metric("Coureurs", len(df_sorted))
             c2.metric("Meilleur temps", df_sorted.iloc[0]["Temps"])
             c3.metric("Temps moyen", seconds_to_str(int(df_sorted["Secondes"].mean())))
-
             st.markdown("")
 
-            # Si "Toutes", afficher par distance
-            if filtre == "Toutes":
+            # Grouper par distance si "Toutes"
+            if filtre_dist == "Toutes":
                 for dist in distances_presentes:
                     df_dist = df_sorted[df_sorted["Distance"] == dist].reset_index(drop=True)
                     if df_dist.empty:
                         continue
                     st.markdown(f"#### {dist}")
                     for i, row in df_dist.iterrows():
-                        rank = i + 1
-                        bg = "#FFF9E6" if rank == 1 else "#F9F9F9" if rank % 2 == 0 else "#FFFFFF"
-                        st.markdown(
-                            f"""
-                            <div style="
-                                display: flex;
-                                align-items: center;
-                                justify-content: space-between;
-                                padding: 12px 20px;
-                                margin-bottom: 6px;
-                                background: {bg};
-                                border-radius: 10px;
-                                border: 1px solid #EBEBEB;
-                                font-size: 16px;
-                            ">
-                                <span style="font-size: 20px; min-width: 50px;">{medal(rank)}</span>
-                                <span style="flex: 1; font-weight: {'600' if rank <= 3 else '400'};">{row['Nom']}</span>
-                                <span style="font-family: monospace; font-size: 18px; color: #333;">{row['Temps']}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                        render_row(i + 1, row, show_category=show_category)
             else:
                 for i, row in df_sorted.iterrows():
-                    rank = i + 1
-                    bg = "#FFF9E6" if rank == 1 else "#F9F9F9" if rank % 2 == 0 else "#FFFFFF"
-                    st.markdown(
-                        f"""
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            justify-content: space-between;
-                            padding: 12px 20px;
-                            margin-bottom: 6px;
-                            background: {bg};
-                            border-radius: 10px;
-                            border: 1px solid #EBEBEB;
-                            font-size: 16px;
-                        ">
-                            <span style="font-size: 20px; min-width: 50px;">{medal(rank)}</span>
-                            <span style="flex: 1; font-weight: {'600' if rank <= 3 else '400'};">{row['Nom']}</span>
-                            <span style="font-family: monospace; font-size: 18px; color: #333;">{row['Temps']}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    render_row(i + 1, row, show_category=show_category)
 
     # ── Supprimer un coureur ─────────────────────────────────────────────────
     if not df.empty and len(df) > 0:
