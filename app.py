@@ -15,7 +15,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-DISTANCES = ["5 km", "10 km", "Demi-marathon (21,1 km)", "Marathon (42,2 km)", "Ultramarathon"]
+DISTANCES = ["5 km", "10 km", "Demi-marathon (21,1 km)", "Marathon (42,2 km)"]
 
 # ── Google Sheets connection ─────────────────────────────────────────────────
 @st.cache_resource
