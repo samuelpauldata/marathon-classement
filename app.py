@@ -125,7 +125,7 @@ try:
     sheet = get_sheet()
     df = load_data(sheet)
 
-    tab1, tab2, tab3, tab4 = st.tabs(["➕ Ajouter", "🏆 Classement", "✏️ Modifier", "📊 Graphique"])
+    tab2, tab4, tab1, tab3 = st.tabs(["🏆 Classement", "📊 Graphique", "➕ Ajouter", "✏️ Modifier"])
 
     # ── TAB 1 : Ajouter ──────────────────────────────────────────────────────
     with tab1:
