@@ -82,6 +82,8 @@ def load_data(sheet):
     if "Evenement" not in df.columns:
         df["Evenement"] = "—"
     df["Secondes"] = pd.to_numeric(df["Secondes"], errors="coerce")
+    df = df[df["Secondes"] > 0].dropna(subset=["Secondes", "Nom"])
+    df = df[df["Nom"].astype(str).str.strip() != ""]
     return df
 
 def medal(rank):
