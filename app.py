@@ -5,12 +5,7 @@ import pandas as pd
 from datetime import date
 import plotly.express as px
 
-# ── Config ──────────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="Classement Course",
-    page_icon="🏃",
-    layout="centered"
-)
+st.set_page_config(page_title="Classement Course", page_icon="🏃", layout="centered")
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -20,23 +15,21 @@ SCOPES = [
 DISTANCES = ["5 km", "10 km", "Demi-marathon (21,1 km)", "Marathon (42,2 km)"]
 DIST_KM = {"5 km": 5.0, "10 km": 10.0, "Demi-marathon (21,1 km)": 21.1, "Marathon (42,2 km)": 42.195}
 AGE_GROUPS = ["18-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"]
+SEXES = ["Homme", "Femme"]
+HEADERS = ["Nom", "Sexe", "Distance", "Categorie", "Evenement", "Date_PB", "Temps", "Secondes"]
 
-# ── Google Sheets ────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_sheet():
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=SCOPES)
+    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
     client = gspread.authorize(creds)
     sheet = client.open(st.secrets["sheet_name"]).sheet1
     if sheet.row_count == 0 or sheet.cell(1, 1).value != "Nom":
         sheet.clear()
-        sheet.append_row(["Nom", "Distance", "Categorie", "Date_PB", "Temps", "Secondes"])
+        sheet.append_row(HEADERS)
     return sheet
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
 def parse_time(time_str):
-    time_str = time_str.strip()
-    parts = time_str.split(":")
+    parts = time_str.strip().split(":")
     try:
         if len(parts) == 3:
             h, m, s = int(parts[0]), int(parts[1]), int(parts[2])
@@ -76,7 +69,7 @@ def ecart_str(secondes, leader_sec):
 def load_data(sheet):
     records = sheet.get_all_records()
     if not records:
-        return pd.DataFrame(columns=["Nom", "Distance", "Categorie", "Date_PB", "Temps", "Secondes"])
+        return pd.DataFrame(columns=HEADERS)
     df = pd.DataFrame(records)
     if "Distance" not in df.columns:
         df["Distance"] = "Marathon (42,2 km)"
@@ -84,6 +77,10 @@ def load_data(sheet):
         df["Categorie"] = "—"
     if "Date_PB" not in df.columns:
         df["Date_PB"] = "—"
+    if "Sexe" not in df.columns:
+        df["Sexe"] = "Homme"
+    if "Evenement" not in df.columns:
+        df["Evenement"] = "—"
     df["Secondes"] = pd.to_numeric(df["Secondes"], errors="coerce")
     return df
 
@@ -95,8 +92,10 @@ def medal(rank):
 
 def render_row(rank, row, leader_sec, show_category=False):
     bg = "#FFF9E6" if rank == 1 else "#F9F9F9" if rank % 2 == 0 else "#FFFFFF"
-    cat_html = f'<span style="font-size:12px;color:#888;margin-left:8px;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") != "—" else ""
+    cat_html = f'<span style="font-size:12px;color:#888;margin-left:6px;">({row["Categorie"]})</span>' if show_category and row.get("Categorie", "—") not in ("—", "") else ""
     date_html = f'<span style="font-size:12px;color:#aaa;margin-left:6px;">{row["Date_PB"]}</span>' if row.get("Date_PB", "—") not in ("—", "") else ""
+    ev_html = f'<span style="font-size:12px;color:#6a9;margin-left:6px;">📍{row["Evenement"]}</span>' if row.get("Evenement", "—") not in ("—", "") else ""
+    sexe_icon = "♂️" if row.get("Sexe") == "Homme" else "♀️"
     pace = pace_str(row["Secondes"], row["Distance"])
     ecart = ecart_str(row["Secondes"], leader_sec)
     ecart_html = f'<span style="font-size:13px;color:#e07000;margin-left:10px;">{ecart}</span>' if ecart else ""
@@ -107,7 +106,7 @@ def render_row(rank, row, leader_sec, show_category=False):
             border-radius:10px;border:1px solid #EBEBEB;font-size:16px;">
             <span style="font-size:20px;min-width:50px;">{medal(rank)}</span>
             <span style="flex:1;font-weight:{'600' if rank <= 3 else '400'};">
-                {row['Nom']}{cat_html}{date_html}
+                {sexe_icon} {row['Nom']}{cat_html}{ev_html}{date_html}
                 <br><span style="font-size:12px;color:#999;">{pace}</span>
             </span>
             <span style="text-align:right;">
@@ -125,26 +124,29 @@ st.markdown("Entrez les résultats de votre équipe et voyez le classement en te
 
 try:
     sheet = get_sheet()
-
-    # ── Tabs ─────────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs(["➕ Ajouter", "🏆 Classement", "✏️ Modifier", "📊 Graphique"])
-
     df = load_data(sheet)
+
+    tab1, tab2, tab3, tab4 = st.tabs(["➕ Ajouter", "🏆 Classement", "✏️ Modifier", "📊 Graphique"])
 
     # ── TAB 1 : Ajouter ──────────────────────────────────────────────────────
     with tab1:
         st.subheader("Ajouter un coureur")
-        col1, col2 = st.columns([2, 1])
+        col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
             nom = st.text_input("Nom du coureur", placeholder="Ex: Marie Tremblay")
         with col2:
-            temps = st.text_input("Temps (H:MM:SS)", placeholder="Ex: 3:45:22")
-        col3, col4, col5 = st.columns([2, 1, 1])
+            sexe = st.selectbox("Sexe", SEXES)
         with col3:
-            distance = st.selectbox("Distance", DISTANCES, index=3)
+            temps = st.text_input("Temps (H:MM:SS)", placeholder="Ex: 3:45:22")
+
+        col4, col5, col6, col7 = st.columns([2, 1, 2, 1])
         with col4:
-            categorie = st.selectbox("Catégorie d'âge", AGE_GROUPS)
+            distance = st.selectbox("Distance", DISTANCES, index=3)
         with col5:
+            categorie = st.selectbox("Catégorie d'âge", AGE_GROUPS)
+        with col6:
+            evenement = st.text_input("Événement", placeholder="Ex: Buffalo, Toronto...")
+        with col7:
             date_pb = st.date_input("Date du PB", value=date.today(), format="DD/MM/YYYY")
 
         if st.button("➕ Ajouter au classement", use_container_width=True):
@@ -159,9 +161,9 @@ try:
                 else:
                     doublon = df[(df["Nom"].str.lower() == nom.strip().lower()) & (df["Distance"] == distance)]
                     if not doublon.empty:
-                        st.warning(f"⚠️ **{nom}** est déjà dans le classement pour **{distance}**. Utilisez l'onglet Modifier pour mettre à jour.")
+                        st.warning(f"⚠️ **{nom}** est déjà dans le classement pour **{distance}**. Utilisez l'onglet Modifier.")
                     else:
-                        sheet.append_row([nom.strip(), distance, categorie, date_pb.strftime("%d/%m/%Y"), seconds_to_str(secondes), secondes])
+                        sheet.append_row([nom.strip(), sexe, distance, categorie, evenement.strip() or "—", date_pb.strftime("%d/%m/%Y"), seconds_to_str(secondes), secondes])
                         st.success(f"✅ **{nom}** ajouté!")
                         st.cache_resource.clear()
                         st.rerun()
@@ -169,15 +171,23 @@ try:
     # ── TAB 2 : Classement ───────────────────────────────────────────────────
     with tab2:
         if df.empty or len(df) == 0:
-            st.info("Aucun coureur pour l'instant. Ajoutez le premier résultat dans l'onglet Ajouter!")
+            st.info("Aucun coureur pour l'instant.")
         else:
-            col_f1, col_f2 = st.columns(2)
+            col_f1, col_f2, col_f3 = st.columns(3)
             with col_f1:
                 distances_presentes = sorted(df["Distance"].unique().tolist(), key=lambda x: DISTANCES.index(x) if x in DISTANCES else 99)
                 filtre_dist = st.radio("Distance", ["Toutes"] + distances_presentes, horizontal=True)
             with col_f2:
                 cats_presentes = [g for g in AGE_GROUPS if g in df["Categorie"].unique()]
                 filtre_cat = st.radio("Catégorie d'âge", ["Toutes"] + cats_presentes, horizontal=True)
+            with col_f3:
+                filtre_sexe = st.radio("Sexe", ["Tous", "Homme", "Femme"], horizontal=True)
+
+            evenements_presents = sorted([e for e in df["Evenement"].unique() if e not in ("—", "")])
+            if evenements_presents:
+                filtre_ev = st.radio("Événement", ["Tous"] + evenements_presents, horizontal=True)
+            else:
+                filtre_ev = "Tous"
 
             tri = st.radio("Trier par", ["🏆 Temps", "📅 Date du PB (récent → ancien)", "📅 Date du PB (ancien → récent)"], horizontal=True)
 
@@ -186,6 +196,10 @@ try:
                 df_filtre = df_filtre[df_filtre["Distance"] == filtre_dist]
             if filtre_cat != "Toutes":
                 df_filtre = df_filtre[df_filtre["Categorie"] == filtre_cat]
+            if filtre_sexe != "Tous":
+                df_filtre = df_filtre[df_filtre["Sexe"] == filtre_sexe]
+            if filtre_ev != "Tous":
+                df_filtre = df_filtre[df_filtre["Evenement"] == filtre_ev]
 
             if tri == "🏆 Temps":
                 df_sorted = df_filtre.dropna(subset=["Secondes"]).sort_values("Secondes").reset_index(drop=True)
@@ -225,8 +239,6 @@ try:
                     for i, row in df_sorted.iterrows():
                         render_row(i + 1, row, leader_sec, show_category=show_category)
 
-        # Supprimer
-        if not df.empty and len(df) > 0:
             st.markdown("---")
             with st.expander("🗑️ Supprimer un coureur"):
                 df_display = df.copy()
@@ -259,18 +271,24 @@ try:
             idx = labels.index(label_modif)
             row_data = df_display.iloc[idx]
 
-            col1, col2 = st.columns([2, 1])
+            col1, col2, col3 = st.columns([2, 1, 1])
             with col1:
                 nouveau_temps = st.text_input("Nouveau temps (H:MM:SS)", value=row_data["Temps"])
             with col2:
+                nouveau_sexe = st.selectbox("Sexe", SEXES, index=SEXES.index(row_data["Sexe"]) if row_data["Sexe"] in SEXES else 0)
+            with col3:
                 try:
                     date_actuelle = pd.to_datetime(row_data["Date_PB"], format="%d/%m/%Y").date()
                 except:
                     date_actuelle = date.today()
-                nouvelle_date = st.date_input("Nouvelle date du PB", value=date_actuelle, format="DD/MM/YYYY")
+                nouvelle_date = st.date_input("Date du PB", value=date_actuelle, format="DD/MM/YYYY")
 
-            nouvelle_cat = st.selectbox("Catégorie d'âge", AGE_GROUPS,
-                index=AGE_GROUPS.index(row_data["Categorie"]) if row_data["Categorie"] in AGE_GROUPS else 0)
+            col4, col5 = st.columns(2)
+            with col4:
+                nouvelle_cat = st.selectbox("Catégorie d'âge", AGE_GROUPS,
+                    index=AGE_GROUPS.index(row_data["Categorie"]) if row_data["Categorie"] in AGE_GROUPS else 0)
+            with col5:
+                nouvel_ev = st.text_input("Événement", value=row_data["Evenement"] if row_data["Evenement"] != "—" else "")
 
             if st.button("💾 Sauvegarder les modifications", use_container_width=True):
                 secondes = parse_time(nouveau_temps)
@@ -280,13 +298,11 @@ try:
                     all_values = sheet.get_all_values()
                     for i, row in enumerate(all_values):
                         if len(row) >= 2 and row[0] == row_data["Nom"] and row[1] == row_data["Distance"]:
-                            sheet.update(f"A{i+1}:F{i+1}", [[
-                                row_data["Nom"],
-                                row_data["Distance"],
-                                nouvelle_cat,
+                            sheet.update(f"A{i+1}:H{i+1}", [[
+                                row_data["Nom"], nouveau_sexe, row_data["Distance"],
+                                nouvelle_cat, nouvel_ev.strip() or "—",
                                 nouvelle_date.strftime("%d/%m/%Y"),
-                                seconds_to_str(secondes),
-                                secondes
+                                seconds_to_str(secondes), secondes
                             ]])
                             st.success(f"✅ **{row_data['Nom']}** mis à jour!")
                             st.cache_resource.clear()
@@ -300,33 +316,32 @@ try:
             st.info("Aucune donnée à afficher.")
         else:
             distances_presentes = sorted(df["Distance"].unique().tolist(), key=lambda x: DISTANCES.index(x) if x in DISTANCES else 99)
-            dist_graph = st.selectbox("Distance", distances_presentes)
-            df_graph = df[df["Distance"] == dist_graph].dropna(subset=["Secondes"]).sort_values("Secondes")
+            col_g1, col_g2 = st.columns(2)
+            with col_g1:
+                dist_graph = st.selectbox("Distance", distances_presentes)
+            with col_g2:
+                couleur_par = st.radio("Couleur par", ["Catégorie d'âge", "Sexe", "Événement"], horizontal=True)
 
+            couleur_col = {"Catégorie d'âge": "Categorie", "Sexe": "Sexe", "Événement": "Evenement"}[couleur_par]
+
+            df_graph = df[df["Distance"] == dist_graph].dropna(subset=["Secondes"]).sort_values("Secondes")
             if df_graph.empty:
                 st.info(f"Aucun coureur pour {dist_graph}.")
             else:
+                df_graph = df_graph.copy()
                 df_graph["Pace"] = df_graph.apply(lambda r: pace_str(r["Secondes"], r["Distance"]), axis=1)
                 df_graph["Minutes"] = df_graph["Secondes"] / 60
 
                 fig = px.bar(
-                    df_graph,
-                    x="Nom",
-                    y="Minutes",
-                    color="Categorie",
-                    text="Temps",
-                    hover_data={"Pace": True, "Date_PB": True, "Minutes": False},
+                    df_graph, x="Nom", y="Minutes",
+                    color=couleur_col, text="Temps",
+                    hover_data={"Pace": True, "Date_PB": True, "Sexe": True, "Evenement": True, "Minutes": False},
                     labels={"Minutes": "Temps (minutes)", "Nom": ""},
                     title=f"Temps — {dist_graph}",
                     color_discrete_sequence=px.colors.qualitative.Set2
                 )
                 fig.update_traces(textposition="outside")
-                fig.update_layout(
-                    yaxis_title="Temps (minutes)",
-                    showlegend=True,
-                    plot_bgcolor="#FAFAFA",
-                    height=450
-                )
+                fig.update_layout(yaxis_title="Temps (minutes)", plot_bgcolor="#FAFAFA", height=450)
                 st.plotly_chart(fig, use_container_width=True)
 
 except Exception as e:
