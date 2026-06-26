@@ -275,7 +275,7 @@ try:
             with col1:
                 nouveau_temps = st.text_input("Nouveau temps (H:MM:SS)", value=row_data["Temps"])
             with col2:
-                nouveau_sexe = st.selectbox("Sexe", SEXES, index=SEXES.index(row_data["Sexe"]) if row_data["Sexe"] in SEXES else 0)
+                nouveau_sexe = st.selectbox("Sexe", SEXES, index=SEXES.index(row_data["Sexe"]) if row_data["Sexe"] in SEXES else 0, key="modif_sexe")
             with col3:
                 try:
                     date_actuelle = pd.to_datetime(row_data["Date_PB"], format="%d/%m/%Y").date()
@@ -286,9 +286,10 @@ try:
             col4, col5 = st.columns(2)
             with col4:
                 nouvelle_cat = st.selectbox("Catégorie d'âge", AGE_GROUPS,
-                    index=AGE_GROUPS.index(row_data["Categorie"]) if row_data["Categorie"] in AGE_GROUPS else 0)
+                    index=AGE_GROUPS.index(row_data["Categorie"]) if row_data["Categorie"] in AGE_GROUPS else 0,
+                    key="modif_cat")
             with col5:
-                nouvel_ev = st.text_input("Événement", value=row_data["Evenement"] if row_data["Evenement"] != "—" else "")
+                nouvel_ev = st.text_input("Événement", value=row_data["Evenement"] if row_data["Evenement"] != "—" else "", key="modif_ev")
 
             if st.button("💾 Sauvegarder les modifications", use_container_width=True):
                 secondes = parse_time(nouveau_temps)
