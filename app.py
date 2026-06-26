@@ -168,6 +168,7 @@ st.markdown("""
 
     /* Hide Streamlit header */
     header[data-testid="stHeader"] { display: none !important; }
+    .stApp { background-color: #F5F5F5; }
     .block-container { padding-top: 1.5rem !important; }
 
     /* Header */
